@@ -1,0 +1,16 @@
+{
+  "author": "George Stagas <gstagas@gmail.com>",
+  "name": "drama",
+  "version": "0.1.0",
+  "dependencies": {
+    "tosource": "~0.1.1"
+  },
+  "devDependencies": {
+    "atomic": "~0.0.2",
+    "nexttick": "~0.1.0"
+  },
+  "optionalDependencies": {},
+  "engines": {
+    "node": "~0.6.17"
+  }
+}
