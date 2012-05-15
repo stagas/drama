@@ -1,7 +1,12 @@
 {
-  "author": "George Stagas <gstagas@gmail.com>",
   "name": "drama",
+  "description": "drama is an Actor model implementation for JavaScript and Node.js",
   "version": "0.1.0",
+  "author": "George Stagas <gstagas@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stagas/drama.git"
+  },
   "dependencies": {
     "tosource": "~0.1.1"
   },
