@@ -136,8 +136,6 @@ ws.on('connection', function (socket) {
   var player = players[socket.id] = socket
 
   player.remote = sys.fork('websocket-' + socket.id, socket)
-  
-  player.mouse = socket.remote.actor(Mouse)
 
   socket.on('close', function () {
     player.localMouse.tell('die')
@@ -146,6 +144,8 @@ ws.on('connection', function (socket) {
   })
 
   setTimeout(function () {
+    player.mouse = socket.remote.actor(Mouse)
+
     player.mouseId = [0,0,0].map(function () { return (Math.random() * 16 | 0).toString(16) }).join('')
     player.mouse.init()
 
