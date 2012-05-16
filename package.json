@@ -12,7 +12,10 @@
   },
   "devDependencies": {
     "atomic": "~0.0.2",
-    "nexttick": "~0.1.0"
+    "nexttick": "~0.1.0",
+    "express": "~2.5.9",
+    "simpl": "~0.4.0",
+    "express-expose": "~0.2.2"
   },
   "optionalDependencies": {},
   "engines": {
