@@ -22,9 +22,93 @@ app.exposeModule(require.resolve('../'), 'drama')
 ws.use(simpl.sid())
 ws.use(simpl.json())
 
-var players = {}
+var Mouse = function () {
+  var x = 0, y = 0, ox = x, oy = y, dirty = false
+  window.onmousemove = function (e) {
+    x = e.clientX
+    y = e.clientY
+    if (x != ox || y != oy) {
+      dirty = true
+      ox = x
+      oy = y
+    }
+  }
+  return {
+    subscribe: function () {
+      var self = this
+      setInterval(function () {
+        if (dirty) {
+          self.sender.tell('pos', [ x, y ])
+          dirty = false
+        }
+      }, 100)
+    }
+  }
+}
 
-var world = sys.actor(function () {
+var RemoteMouseProxy = function (mouseId) {
+  var div = document.createElement('div')
+  div.classList.add('mouse')
+  div.style.background = '#' + mouseId
+  document.body.appendChild(div)
+  var xy = [ 0, 0 ]
+  var v = [ 0, 0 ]
+  var t = [ 0, 0 ]
+  var drawInterval = setInterval(function () {
+    v[0] += (t[0] - xy[0]) * 0.004
+    v[1] += (t[1] - xy[1]) * 0.004
+    xy[0] += v[0]
+    xy[1] += v[1]
+    div.style.left = xy[0] + 'px'
+    div.style.top = xy[1] + 'px'
+    v[0] *= 0.95
+    v[1] *= 0.95
+  }, 10)
+  return {
+    pos: function (_xy) {
+      t[0] = _xy[0]
+      t[1] = _xy[1]
+    }
+  , die: function () {
+      document.body.removeChild(div)
+      clearInterval(drawInterval)
+      this.stop()
+    }
+  }
+}
+
+var LocalMouseProxy = function () {
+  var xy = [ 0, 0 ]
+  var dirty = false
+  var listeners = []
+  return {
+    pos: function (_xy) {
+      xy[0] = _xy[0]
+      xy[1] = _xy[1]
+      dirty = true
+    }
+  , publish: function () {
+      if (dirty) {
+        dirty = false
+        listeners.forEach(function (actor) {
+          actor.tell('pos', xy)
+        })
+      }
+    }
+  , subscribe: function () {
+      listeners.push(this.sender)
+      this.sender.tell('pos', xy)
+    }
+  , die: function () {
+      listeners.forEach(function (actor) {
+        actor.tell('die')
+      })
+      this.stop()
+    }
+  }
+}
+
+var localMice = sys.actor(function () {
   var self = this
   var mice = []
   setInterval(function () {
@@ -46,100 +130,18 @@ var world = sys.actor(function () {
   }
 }).init()
 
+var players = {}
+
 ws.on('connection', function (socket) {
   var player = players[socket.id] = socket
 
   player.remote = sys.fork('websocket-' + socket.id, socket)
   
-  player.mouse = socket.remote.actor(function () {
-    var x = 0, y = 0, ox = x, oy = y, dirty = false
-    window.onmousemove = function (e) {
-      x = e.clientX
-      y = e.clientY
-      if (x != ox || y != oy) {
-        dirty = true
-        ox = x
-        oy = y
-      }
-    }
-    return {
-      subscribe: function () {
-        var self = this
-        setInterval(function () {
-          if (dirty) {
-            self.sender.tell('pos', [ x, y ])
-            dirty = false
-          }
-        }, 100)
-      }
-    }
-  })
-
-  var RemoteMouseProxy = function (mouseId) {
-    var div = document.createElement('div')
-    div.classList.add('mouse')
-    div.style.background = '#' + mouseId
-    document.body.appendChild(div)
-    var xy = [ 0, 0 ]
-    var v = [ 0, 0 ]
-    var t = [ 0, 0 ]
-    var drawInterval = setInterval(function () {
-      v[0] += (t[0] - xy[0]) * 0.004
-      v[1] += (t[1] - xy[1]) * 0.004
-      xy[0] += v[0]
-      xy[1] += v[1]
-      div.style.left = xy[0] + 'px'
-      div.style.top = xy[1] + 'px'
-      v[0] *= 0.95
-      v[1] *= 0.95
-    }, 10)
-    return {
-      pos: function (_xy) {
-        t[0] = _xy[0]
-        t[1] = _xy[1]
-      }
-    , die: function () {
-        document.body.removeChild(div)
-        clearInterval(drawInterval)
-        this.stop()
-      }
-    }
-  }
-
-  var LocalMouseProxy = function () {
-    var xy = [ 0, 0 ]
-    var dirty = false
-    var listeners = []
-    return {
-      pos: function (_xy) {
-        xy[0] = _xy[0]
-        xy[1] = _xy[1]
-        dirty = true
-      }
-    , publish: function () {
-        if (dirty) {
-          dirty = false
-          listeners.forEach(function (actor) {
-            actor.tell('pos', xy)
-          })
-        }
-      }
-    , subscribe: function () {
-        listeners.push(this.sender)
-        this.sender.tell('pos', xy)
-      }
-    , die: function () {
-        listeners.forEach(function (actor) {
-          actor.tell('die')
-        })
-        this.stop()
-      }
-    }
-  }
+  player.mouse = socket.remote.actor(Mouse)
 
   socket.on('close', function () {
     player.localMouse.tell('die')
-    world.tell('remove', player.localMouse)
+    localMice.tell('remove', player.localMouse)
     delete players[socket.id]
   })
 
@@ -150,7 +152,7 @@ ws.on('connection', function (socket) {
     player.localMouse = sys.actor(LocalMouseProxy).init()
       .send('subscribe').to(player.mouse)
 
-    world.tell('add', player.localMouse)
+    localMice.tell('add', player.localMouse)
 
     player.remote.actor(RemoteMouseProxy).init(player.mouseId)
       .send('subscribe').to(player.localMouse)
