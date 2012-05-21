@@ -1,6 +1,9 @@
 var drama = require('../')
 var sys = drama('sys')
 
+var actor = sys.actor({ hello: function (message) { console.log(message) } })
+actor.tell('hello', 'world') // 'world'
+
 var actor = sys.actor(function (initial) {
   var value = initial
   return {

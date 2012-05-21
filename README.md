@@ -16,7 +16,7 @@ var sys = drama('sys')
 Okay, now let's create a simple actor in our system, with some default behavior:
 
 ```javascript
-var actor = sys.actor({ hello: function (message) { console.log(message) })
+var actor = sys.actor({ hello: function (message) { console.log(message) } })
 ```
 
 And then run it!
