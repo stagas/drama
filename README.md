@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/stagas/drama.png)](http://travis-ci.org/stagas/drama)
 # drama
 
 Actor model implementation for JavaScript and Node.js (work in progress)
